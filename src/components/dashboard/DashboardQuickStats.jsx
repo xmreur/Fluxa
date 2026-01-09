@@ -28,7 +28,7 @@ export const DashboardQuickStats = ({ loading, stats }) => {
         )
     }
     return (
-        <div className="grid grid-cols-4 gap-4">
+        <div className="flex flex-col md:flex-row justify-center items-center flew-wrap gap-4">
             {statItems.map((item, idx) => {
                 const Icon = item.icon
                 const value = stats[item.key] || []
@@ -39,7 +39,7 @@ export const DashboardQuickStats = ({ loading, stats }) => {
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: idx * 0.1 }}
-                        className={`rounded-xl border bg-linear-to-b ${item.color} p-4`}
+                        className={`rounded-xl w-full md:max-w-1/4 border bg-linear-to-b ${item.color} p-4`}
                     >
                         <div className="flex items-center justify-between">
                             <Icon className={`h-5 w-5 ${item.textColor} ${item.spin ? 'animate-spin' : ''}`} />

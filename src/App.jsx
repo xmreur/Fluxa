@@ -5,6 +5,7 @@ import { Auth } from './pages/Auth'
 import { Settings } from './pages/Settings'
 import { Dashboard } from './pages/Dashboard'
 import { Teams } from './pages/Teams'
+import { Projects } from './pages/Projects'
 
 function App() {
 
@@ -16,6 +17,7 @@ function App() {
                 <Route path='' element={<Dashboard />} />
                 <Route path='/teams' element={<Teams />} />
                 <Route path='/settings' element={<Settings />} />
+                <Route path='/projects' element={<Projects />} />
 
                 <Route path='*' element={<h1 className='text-6xl text-white'>Page Not Found</h1>} />
             </Route>

@@ -4,16 +4,72 @@ import * as lucide from 'react-icons/lu';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/Card";
 import Input from "../components/Input";
 import { Switch } from "../components/Switch";
+import { useState } from "react";
+import { supabase } from "../supabase-client";
 
 export function Settings() {
 
     const { user, profile, loading } = useAuth();
+    const [formData, setFormData] = useState({ email: profile.email, username: profile.username })
+    const [error, setError] = useState('')
+    const [loadingForm, setLoadingForm] = useState('');
 
+    const updateUserData = async (email, username) => {
+
+        if (email === profile.email && username === profile.username) return // no sense changing same data
+
+        setLoadingForm(true)
+        setError('');
+
+        // the username changed, check availability
+        if (username !== profile.username) {
+            const { data: exists } = await supabase.from('profiles').select('id').eq('username', username).maybeSingle();
+
+            if (exists !== null) { // Username is taken
+                setError('The username is taken already')
+                setLoadingForm(false)
+                return
+            }
+        }
+
+        if (email !== profile.email) {
+            const { data: exists } = await supabase.from('profiles').select('email').eq('email', email).maybeSingle();
+
+            if (exists !== null) { // Email taken already
+                setError('Email already in use by another account')
+                setLoadingForm(false)
+                return
+            }
+        }
+
+        try {
+            await supabase
+                .from('profiles')
+                .update({ username })
+                .eq('id', user.id);
+
+            await supabase.auth.updateUser({
+                data:{
+                    display_name: username
+                }
+            })
+
+            if (email !== profile.email) {
+                await supabase.auth.updateUser({ email })
+            }
+
+            setLoadingForm(false)
+        } catch (e) {
+            console.error('Error updating user:', e)
+            setError('Something went wrong, please try again in a few seconds')
+            setLoadingForm(false)
+        }
+    }
     return (
         <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="max-w-3xl"
+            className="max-w-full"
         >
             <div className="flex items-center gap-3 mb-8">
                 <div className="p-2 rounded-lg bg-blue-500/20">
@@ -38,19 +94,22 @@ export function Settings() {
                         <div className="grid gap-4 md:grid-cols-2">
                             <div className="space-y-2">
                                 <label htmlFor="username" className="text-sm">Display Name</label>
-                                <Input id='username' defaultValue={profile.username || ''} placeholder='Your name' />
+                                <Input id='username' value={formData.username || ''} onChange={(e) => setFormData({...formData, username: e.target.value })} placeholder='Your name' />
                             </div>
                             <div className="space-y-2">
                                 <label htmlFor="email" className="text-sm">Email</label>
-                                <Input id='email' defaultValue={profile.email || ''} placeholder='email@example.com' />
+                                <Input id='email' value={formData.email || ''} onChange={(e) => setFormData({...formData, email: e.target.value })} placeholder='email@example.com' />
                             </div>
                         </div>
                         <button
-                            onClick={() => {}}
+                            onClick={() => updateUserData(formData.email, formData.username)}
                             className="w-full bg-cyan-500 hover:bg-cyan-600 cursor-pointer justify-center max-w-46 text-black items-center flex py-3 rounded-xl"
                         >
-                            Save Changes
+                            {loadingForm ? 'Updating...' : 'Save Changes'}
                         </button>
+                        {error && (
+                            <p className="text-red-500 font-semibold text-center w-full">{error}</p>
+                        )}
                     </CardContent>
                 </Card>
 

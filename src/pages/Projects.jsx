@@ -7,15 +7,17 @@ import { CreateTeamModal } from "../components/modals/CreateTeamModal";
 import { InviteToTeamModal } from "../components/modals/InviteToTeamModal";
 import TeamInvitesDropdown from "../components/teams/TeamInvitesDropdown";
 import { TeamMemberList } from "../components/teams/MembersList";
+import { CreateProjectModal } from "../components/modals/CreateProjectModal";
+import { ProjectsList } from "../components/projects/ProjectsList";
 
-export const Teams = () => {
+export const Projects = () => {
     const [teams, setTeams] = useState([]);
     const { user, profile, loading } = useAuth();
     const [dataLoading, setDataLoading] = useState(true);
 
     const [showCreateModal, setShowCreateModal] = useState(false);
 
-    const [showInviteModalTeam, setShowInviteModalTeam] = useState(null);
+    const [showInviteModalTeam, setShowCreateProjectModalTeam] = useState(null);
 
     function capitalizeFirstLetter(string) {
         if (!string) return "";
@@ -47,7 +49,58 @@ export const Teams = () => {
 
             if (teamsError) throw teamsError;
 
-            // 2️⃣ Fetch all team members
+            // 2️⃣ Fetch projects for these teams
+            const { data: projectsData, error: projectsError } = await supabase
+                .from("projects")
+                .select("id, name, description, team_id, created_by")
+                .in("team_id", teamIds);
+
+            if (projectsError) throw projectsError;
+
+            const projectCreatorIds = [...new Set(projectsData.map(p => p.created_by))];
+
+            // 3️⃣ Fetch profiles for project creators
+            const { data: profilesData, error: profilesError } =
+                await supabase
+                    .from("profiles")
+                    .select("id, username, email, avatar_url")
+                    .in("id", projectCreatorIds);
+
+            if (profilesError) throw profilesError;
+
+            const profileMap = Object.fromEntries(
+                profilesData.map(p => [p.id, p])
+            );
+
+            // 4️⃣ Fetch issues per project
+            const projectIds = projectsData.map(p => p.id);
+            const { data: issuesData, error: issuesError } = await supabase
+                .from("issues")
+                .select("*")
+                .in("project_id", projectIds);
+
+            if (issuesError) throw issuesError;
+
+            const issuesByProject = {};
+            issuesData.forEach(issue => {
+                if (!issuesByProject[issue.project_id]) issuesByProject[issue.project_id] = [];
+                issuesByProject[issue.project_id].push(issue);
+            });
+
+            // 5️⃣ Build projects array with creator and issues
+            const projectsByTeam = {};
+            projectsData.forEach(project => {
+                if (!projectsByTeam[project.team_id]) projectsByTeam[project.team_id] = [];
+                projectsByTeam[project.team_id].push({
+                    id: project.id,
+                    name: project.name,
+                    description: project.description,
+                    created_by: profileMap[project.created_by] || null,
+                    issues: issuesByProject[project.id] || []
+                });
+            });
+
+            // 6️⃣ Fetch team members
             const { data: membersData, error: membersError } = await supabase
                 .from("team_members")
                 .select("team_id, user_id, role")
@@ -65,109 +118,40 @@ export const Teams = () => {
 
             const userIds = [...new Set(membersData.map(m => m.user_id))];
 
-            // 3️⃣ Fetch profiles for members
-            const { data: profilesData, error: profilesError } =
+            // 7️⃣ Fetch profiles for members
+            const { data: memberProfiles, error: memberProfilesError } =
                 await supabase
                     .from("profiles")
                     .select("id, username, email, avatar_url")
                     .in("id", userIds);
 
-            if (profilesError) throw profilesError;
+            if (memberProfilesError) throw memberProfilesError;
 
-            const profileMap = Object.fromEntries(
-                profilesData.map(p => [p.id, p])
+            const memberProfileMap = Object.fromEntries(
+                memberProfiles.map(p => [p.id, p])
             );
 
-            // 4️⃣ Fetch issue counts (single query)
-            const { data: issuesData, error: issuesError } = await supabase
-                .from("issues")
-                .select("created_by, assigned_to");
-
-            if (issuesError) throw issuesError;
-
-            const issueCountByUser = {};
-            issuesData.forEach(issue => {
-                if (issue.created_by) {
-                    issueCountByUser[issue.created_by] =
-                        (issueCountByUser[issue.created_by] || 0) + 1;
-                }
-                if (issue.assigned_to) {
-                    issueCountByUser[issue.assigned_to] =
-                        (issueCountByUser[issue.assigned_to] || 0) + 1;
-                }
-            });
-
-            // 5️⃣ Fetch invites
-            const { data: invitesData, error: invitesError } = await supabase
-                .from("invites")
-                .select("id, team_id, invitee_email, role, created_at")
-                .in("team_id", teamIds);
-
-            if (invitesError) throw invitesError;
-
-            // 5a Fetch profiles for invited emails (if they exist)
-            const inviteEmails = [...new Set(invitesData.map(invite => invite.invitee_email))];
-            let inviteProfilesData = [];
-            if (inviteEmails.length) {
-                const { data, error } = await supabase
-                    .from("profiles")
-                    .select("id, username, email, avatar_url")
-                    .in("email", inviteEmails);
-
-                if (error) throw error;
-                inviteProfilesData = data;
-            }
-
-            const inviteProfileMap = Object.fromEntries(
-                inviteProfilesData.map(p => [p.email, p])
-            );
-
-            const invitesByTeam = {};
-            invitesData.forEach(invite => {
-                if (!invitesByTeam[invite.team_id]) invitesByTeam[invite.team_id] = [];
-
-                const profile = inviteProfileMap[invite.invitee_email];
-
-                invitesByTeam[invite.team_id].push({
-                    invite_id: invite.id,
-                    id: profile?.id || null,
-                    username: profile?.username || null,
-                    email: invite.invitee_email,
-                    avatar_url: profile?.avatar_url || null,
-                    role: invite.role,
-                    created_at: invite.created_at
-                });
-            });
-
-            // 6️⃣ Build teams array (WITH current user role, members, invites)
+            // 9️⃣ Build final teams array
             const teams = teamsData.map(team => ({
                 id: team.id,
                 name: team.name,
                 description: team.description,
                 role: myRoleByTeam[team.id] || "member",
-                members: [],
-                invites: invitesByTeam[team.id] || []
+                projects: projectsByTeam[team.id] || [],
+                members: membersData
+                    .filter(m => m.team_id === team.id)
+                    .map(m => {
+                        const profile = memberProfileMap[m.user_id];
+                        return {
+                            id: m.user_id,
+                            role: m.role,
+                            username: profile?.username,
+                            email: profile?.email,
+                            avatar_url: profile?.avatar_url,
+                            issue_amount: issuesData.filter(issue => issue.created_by === m.user_id || issue.assigned_to === m.user_id).length
+                        };
+                    })
             }));
-
-            const teamMap = Object.fromEntries(
-                teams.map(team => [team.id, team])
-            );
-
-            // 7️⃣ Attach members
-            membersData.forEach(member => {
-                const profile = profileMap[member.user_id];
-                const team = teamMap[member.team_id];
-                if (!profile || !team) return;
-
-                team.members.push({
-                    id: member.user_id,
-                    role: member.role,
-                    username: profile.username,
-                    email: profile.email,
-                    avatar_url: profile.avatar_url,
-                    issue_amount: issueCountByUser[member.user_id] || 0
-                });
-            });
 
             return teams;
         } catch (e) {
@@ -175,6 +159,7 @@ export const Teams = () => {
             return [];
         }
     };
+
 
 
     useEffect(() => {
@@ -191,6 +176,7 @@ export const Teams = () => {
             const data = await fetchData();
             setTeams(data);
             setDataLoading(false);
+            console.log(data)
         };
 
         load();
@@ -231,20 +217,14 @@ export const Teams = () => {
                             <lucide.LuUsers className="h-6 w-6 text-blue-500" />
                         </div>
                         <div>
-                            <h1 className="text-2xl font-bold text-white">Teams</h1>
+                            <h1 className="text-2xl font-bold text-white">Projects</h1>
                             <p className="text-gray-400">
-                                Manage your teams, members and roles.
+                                View your teams projects.
                             </p>
                         </div>
                     </div>
 
-                    <button 
-                        onClick={() => setShowCreateModal(true)}
-                        className="bg-blue-500 hover:bg-blue-600 text-white rounded-lg px-5 py-2 flex items-center gap-2"
-                    >
-                        <lucide.LuPlus className="h-4 w-4" />
-                        Create Team
-                    </button>
+                    
                 </div>
 
                 {/* Teams */}
@@ -276,17 +256,18 @@ export const Teams = () => {
                                 {team.role !== 'member' && (
                                     <>
                                         <button
-                                            onClick={() => setShowInviteModalTeam(team.id)} 
+                                            onClick={() => setShowCreateProjectModalTeam(team.id)} 
                                             className="bg-blue-500 hover:bg-blue-600 text-white rounded-lg px-5 py-2 flex items-center gap-2"
                                         >
                                             <lucide.LuPlus className="h-4 w-4" />
-                                            Invite Member
+                                            Create Project
                                         </button>
 
-                                        <InviteToTeamModal 
+                                        <CreateProjectModal 
                                             open={showInviteModalTeam === team.id}
-                                            onClose={() => setShowInviteModalTeam(null)}
+                                            onClose={() => setShowCreateProjectModalTeam(null)}
                                             onCreate={updateData}
+                                            user={user}
                                             teamId={team.id}
                                             teamName={team.name}
                                         />
@@ -294,14 +275,9 @@ export const Teams = () => {
                                 )}
                             </motion.div>
 
-                            <TeamMemberList userRole={team.role} teamId={team.id} members={team.members} capitalizeFirstLetter={capitalizeFirstLetter} />
+                            <ProjectsList userRole={team.role} projects={team.projects} capitalizeFirstLetter={capitalizeFirstLetter} />
                             
-                            {team.invites.length > 0 && (
-                                <TeamInvitesDropdown
-                                    invites={team.invites}
-                                    revokeInvite={revokeInvite}
-                                />
-                            )}
+                           
                         </div>
                     ))}
                 </div>

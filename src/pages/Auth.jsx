@@ -218,7 +218,7 @@ export function Auth () {
                         {
                             mode === 'login' && (
                                 <div className="flex justify-end">
-                                    <button type='button' className='text-sm text-blue-400 hover:underline'>
+                                    <button type='button' className='text-sm cursor-pointer text-blue-400 hover:underline'>
                                         Forgot password?
                                     </button>
                                 </div>
@@ -238,7 +238,7 @@ export function Auth () {
                         <button 
                             type='button'
                             onClick={toggleMode}
-                            className="text-blue-400 hover:underline font-medium"
+                            className="text-blue-400 cursor-pointer hover:underline font-medium"
                         >
                             { mode === 'login' ? 'Sign up' : 'Sign In'}
                         </button>

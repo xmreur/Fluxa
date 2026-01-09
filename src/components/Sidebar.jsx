@@ -7,7 +7,8 @@ import { supabase } from "../supabase-client";
 
 const navItems = [
     { icon: lucide.LuLayoutDashboard, label: 'Dashboard', path: '/' },
-    { icon: lucide.LuInbox, label: 'My Issues', path: '/issues' },
+    { icon: lucide.LuInbox, label: 'My Inbox', path: '/inbox' },
+    { icon: lucide.LuFolderCode, label: 'My Issues', path: '/issues'},
     { icon: lucide.LuFolderKanban, label: 'Projects', path: '/projects' },
     { icon: lucide.LuUsers, label: 'Teams', path: '/teams' },
     { icon: lucide.LuSettings, label: 'Settings', path: '/settings' },
@@ -17,10 +18,26 @@ export function Sidebar() {
 
     const location = useLocation();
 
-    const isActive = (path) => {
-        return path === location;
-    } 
 
+    const isActive = (path) => location.pathname === path;
+    
+    const handleLogout = async () => {
+        await supabase.auth.signOut({ scope: 'local' });
+        navigateTo('/auth', { replace: true });
+    };
+
+    const itemVariants = {
+        hidden: { x: -10, opacity: 0 },
+        visible: (i) => ({
+            x: 0,
+            opacity: 1,
+            transition: {
+                delay: i * 0.05,
+                duration: 0.2
+            }
+        })
+    };
+    
     const {user, profile, loading } = useAuth();
     const navigateTo = useNavigate();
 
@@ -47,69 +64,85 @@ export function Sidebar() {
             </div>
     
             {/* Navigation */}
-            <nav className="flex-1 px-2">
-                {
-                    navItems.map((item, index) => {
-                        const Icon = item.icon
-                        return (
-                            <motion.button
-                                key={item.label}
-                                initial={{ x: -10, opacity: 0 }}
-                                animate={{ x: 0, opacity: 1 }}
-                                onClick={() => navigateTo(item.path, { replace: false })}
-                                transition={{ delay: index * 0.05 }}
-                                className={`w-full flex items-center cursor-pointer hover:bg-slate-700 gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors mb-1 ${
-                                    isActive(item.path)
-                                        ? 'bg-slate-600 text-white'
-                                        : 'text-gray-400' 
+            <nav className="flex-1 px-3 py-2 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-gray-900">
+                {navItems.map((item, index) => {
+                    const Icon = item.icon;
+                    return (
+                        <motion.button
+                            key={item.label}
+                            custom={index}
+                            variants={itemVariants}
+                            initial="hidden"
+                            animate="visible"
+                            
+                            onClick={() => navigateTo(item.path, { replace: false })}
+                            className={`
+                                w-full flex items-center cursor-pointer  
+                                gap-3 px-3 py-2.5 rounded-xl text-sm font-medium
+                                transition-all mb-1.5 hover:bg-slate-800
+                                ${isActive(item.path)
+                                    ? 'bg-slate-700/60 text-white '
+                                    : 'text-gray-300 hover:text-white '
                                 }
-                                `}
-                            >
-                                <Icon className="h-4 w-4" />
-                                {item.label}
-                            </motion.button>
-                        )
-                    })
-                }
+                            `}
+                        >
+                            <Icon className="h-5 w-5 " />
+                            <span className="truncate">{item.label}</span>
+                        </motion.button>
+                    );
+                })}
             </nav>
 
-            {/* User */}
-            {
-                loading ?
-                    <div className="p-4 border-t border-gray-500">
+            {/* User Profile */}
+                <div className="p-4 border-t border-gray-500 ">
+                    {loading ? (
                         <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-full bg-indigo-700 animate-pulse"></div>
+                            <div className="w-10 h-10 rounded-full bg-indigo-900/50 backdrop-blur-sm animate-pulse shadow-lg" />
                             <div className="flex-1 min-w-0 space-y-1">
-                                <div className="h-4 w-24 rounded-full bg-gray-700 animate-pulse"></div>
-                                <div className="h-3 w-32 rounded-full bg-gray-700 animate-pulse"></div>
+                                <div className="h-4 w-24 rounded-full bg-indigo-900/30 animate-pulse" />
+                                <div className="h-3 w-32 rounded-full bg-indigo-900/20 animate-pulse" />
                             </div>
                         </div>
-                    </div>
-                :
-                    <div className="p-4 border-t border-gray-500">
-                        <div className="flex items-center gap-3">
-                            {
-                                profile.avatar_url ?
-                                <img className="w-8 h-8 text-white font-bold rounded-full bg-indigo-700 flex items-center justify-center" src={profile.avatar_url} alt={profile.username} />
-                                :
-                                <div className="w-8 h-8 text-white font-bold rounded-full bg-indigo-700 flex items-center justify-center">
-                                    {profile.username.charAt(0).toUpperCase()}
-                                </div>
-                            }
+                    ) : (
+                        <div className="flex items-center gap-3 group">
+                            <div className="relative">
+                                {profile?.avatar_url ? (
+                                    <img 
+                                        className="w-10 h-10 rounded-full ring-2 ring-indigo-500/50 shadow-lg object-cover"
+                                        src={profile.avatar_url} 
+                                        alt={profile.username}
+                                    />
+                                ) : (
+                                    <div className="w-10 h-10 rounded-full bg-linear-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold text-sm shadow-lg ring-2 ring-indigo-400/50">
+                                        {profile?.username?.charAt(0).toUpperCase()}
+                                    </div>
+                                )}
+                            </div>
                             <div className="flex-1 min-w-0">
                                 <div className="flex justify-between items-center">
-                                    <div>
-                                        <p className="text-sm font-medium text-white truncate">{profile.username}</p>
-                                        <p className="text-xs text-gray-400 truncated">{profile.email}</p>
+                                    <div className="min-w-0">
+                                        <p className="text-sm font-semibold text-white truncate">
+                                            {profile?.username || 'User'}
+                                        </p>
+                                        <p className="text-xs text-gray-400 truncate max-w-30">
+                                            {profile?.email}
+                                        </p>
                                     </div>
-                                    <div onClick={async (e) => { await supabase.auth.signOut({ scope: 'local' })}} className="p-2 cursor-pointer rounded text-red-700 hover:bg-red-600 inline-flex hover:text-slate-950 items-center justify-center">
-                                        <lucide.LuLogOut className="h-5 w-5  " />
-                                    </div>
+                                    <motion.button
+                                        whileHover={{ scale: 1.1 }}
+                                        whileTap={{ scale: 0.95 }}
+                                        transition={{ duration: 0.05 }}
+                                        onClick={handleLogout}
+                                        className="p-1.5 cursor-pointer rounded-lg text-gray-400 hover:bg-red-500/20 hover:text-red-400 transition-all"
+                                        title="Sign out"
+                                    >
+                                        <lucide.LuLogOut className="h-4 w-4" />
+                                    </motion.button>
                                 </div>
                             </div>
                         </div>
-                    </div>
-            }
+                    )}
+                </div>
     
         </motion.aside>
     )
