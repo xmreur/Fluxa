@@ -1,4 +1,11 @@
 @import "tailwindcss";
+@plugin 'tailwind-scrollbar';
+
+/* Apply thin scrollbar to all scrollable elements */
+* {
+  @apply scrollbar-thin scrollbar-thumb-slate-500/50 scrollbar-track-slate-700/30;
+}
+
 
 #root {
     display: flex;

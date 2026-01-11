@@ -16,7 +16,7 @@ export default function AuthProtectedLayout() {
     return (
         <>
             <Sidebar />
-            <main className="flex-1 max-h-svh p-8 overflow-y-auto">
+            <main className="flex-1 max-h-svh p-8 overflow-y-auto ">
                 <Outlet />
             </main>
         </>

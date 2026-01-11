@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import { Card, CardContent } from "../Card";
 import { DropdownMenu } from "../DropdownMenu";
 import { IoIosMore } from "react-icons/io";
+import { Avatar } from "../Avatar";
 
 export const ProjectMembers = ({ projectId, setMembersAmount, userRole, toUpdate }) => {
     const [members, setMembers] = useState([])
@@ -94,13 +95,7 @@ export const ProjectMembers = ({ projectId, setMembersAmount, userRole, toUpdate
                     <Card className="hover:border-blue-500/50 transition-colors">
                         <CardContent className="p-4 flex items-center justify-between">
                             <div className="flex items-center gap-4">
-                                {member.avatar_url ? (
-                                    <img src={member.avatar_url} alt={member.username} className="w-8 h-8 rounded-full" />
-                                ) : (
-                                    <div className="w-8 h-8 rounded-full bg-indigo-700 flex items-center justify-center text-white font-bold">
-                                        {member.username.charAt(0).toUpperCase()}
-                                    </div>
-                                )}
+                                <Avatar profile={member} className="h-8 w-8" />
                                 <div>
                                     <p className="font-medium">{member.username}</p>
                                     <p className="text-sm text-gray-400 flex items-center gap-1">

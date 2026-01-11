@@ -2,11 +2,14 @@ import { useState, useRef } from "react";
 import { Avatar } from "../../components/Avatar";
 import * as lucide from "react-icons/lu";
 import { supabase } from "../../supabase-client";
+import { useAuth } from "../../context/AuthContext";
 
 export function AvatarUploader({ profile, user }) {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
     const [avatarUrl, setAvatarUrl] = useState(profile?.avatar_url || "");
+
+    const {_user, _profile, _loading, setProfile } = useAuth(); 
 
     const fileInputRef = useRef(null); // ✅ ref to trigger input click
 
@@ -59,6 +62,8 @@ export function AvatarUploader({ profile, user }) {
             if (updateError) throw updateError;
 
             setAvatarUrl(`${publicUrl}?t=${Date.now()}`);
+            setProfile({ ...profile, avatar_url: `${publicUrl}?t=${Date.now()}`})
+            
         } catch (e) {
             console.error(e);
             setError("Failed to update avatar. Please try again.");

@@ -3,92 +3,71 @@ import { useEffect, useState } from "react"
 import { motion } from "framer-motion"
 import * as lucide from 'react-icons/lu'
 import { Tabs } from "../components/Tabs"
-import { Card, CardContent } from "../components/Card"
 import { supabase } from "../supabase-client"
-import { DropdownMenu } from "../components/DropdownMenu"
 import { useAuth } from "../context/AuthContext"
+import { IssueCard } from "../components/IssueCard"
 
 export const Issues = () => {
 
-    const {user, profile, loading} = useAuth()
+    const { user, profile, loading } = useAuth()
 
     const [assigned, setAssigned] = useState([])
     const [created, setCreated] = useState([])
-
     const [activeTab, setActiveTab] = useState('assigned')
-
-    const capitalize = (str) => str ? str.charAt(0).toUpperCase() + str.slice(1) : ""
-
+    const [loadingIssues, setLoadingIssues] = useState(true)
 
     const tabs = [
         { value: 'assigned', name: 'Assigned', icon: lucide.LuInbox },
         { value: 'created', name: 'Created', icon: lucide.LuCircleCheck }
     ]
 
-    useEffect(() => {
-        const loadTeamNames = async () => {
-            const teamIds = invites.map(invite => invite.team_id)
+    // Fetch issues assigned to or created by the current user
+    const fetchIssues = async () => {
+        if (!user?.id) return
+        setLoadingIssues(true)
+
+        try {
             const { data, error } = await supabase
-                .from('teams')
-                .select('id, name')
-                .in('id', teamIds)
-
-            if (data) {
-                // create a lookup table
-                const namesMap = {}
-                data.forEach(team => { namesMap[team.id] = team.name })
-                setTeamNames(namesMap)
-            }
-        }
-
-        const loadProjectNames = async () => {
-            const projectIds = notifications.map(notification => notification.project_id)
-            const { data, error } = await supabase
-                .from('projects')
-                .select('id,name').in('id', projectIds)
-
-            if (data) {
-                const namesMap = {}
-                data.forEach(project => { namesMap[project.id] = project.name })
-                setProjectNames(namesMap)
-            }
-        }
-
-        //loadTeamNames()
-        //loadProjectNames()
-    }, [])
-
-    useEffect(() => {
-        if (!user) return
-
-        const fetchInboxData = async () => {
-
-            /* ----------- FETCH INVITES ----------- */
-            const { data: invitesData, error: invitesError } = await supabase
-                .from('invites')
-                .select('*')
-                .eq('invitee_email', user.email)
+                .from('issues')
+                .select(`
+                    *,
+                    issue_labels (
+                        labels (
+                            id,
+                            name,
+                            color
+                        )
+                    ),
+                    assignee:profiles (
+                        id,
+                        username,
+                        avatar_url
+                    )
+                `)
+                .or(`assigned_to.eq.${user.id},created_by.eq.${user.id}`)
                 .order('created_at', { ascending: false })
 
-            if (!invitesError && invitesData) {
-                setInvites(invitesData)
-            }
+            if (error) throw error
 
-            /* -------- FETCH NOTIFICATIONS -------- */
-            const { data: notificationsData, error: notificationsError } = await supabase
-                .from('notifications')
-                .select('*')
-                .eq('user_id', user.id)
-                .order('created_at', { ascending: false })
+            // normalize labels from join table
+            const normalized = data.map(issue => ({
+                ...issue,
+                labels: issue.issue_labels?.map(il => il.labels) || []
+            }))
 
-            if (!notificationsError && notificationsData) {
-                setNotifications(notificationsData)
-            }
+            // Split assigned vs created
+            setAssigned(normalized.filter(issue => issue.assigned_to === user.id && issue.is_active))
+            setCreated(normalized.filter(issue => issue.created_by === user.id))
+        } catch (err) {
+            console.error('Failed to fetch issues:', err)
+        } finally {
+            setLoadingIssues(false)
         }
+    }
 
-        // fetchInboxData()
-    }, [user])
-
+    useEffect(() => {
+        if (!loading) fetchIssues()
+    }, [user, loading])
 
     return (
         <motion.div
@@ -113,36 +92,38 @@ export const Issues = () => {
                 activeTab={activeTab}
                 onTabChange={setActiveTab}
                 tabs={tabs}
-                counts={{ assigned: 0, created: 0 }}
+                counts={{ assigned: assigned.length, created: created.length }}
             />
 
-            
-            <div className="mt-6 min-w-full min-h-fit">
-                
-                <div className={`space-y-4 ${activeTab === 'invites' ? 'block' : 'hidden'}`}>
-
-                </div>
-
-                <div className={`space-y-4 ${activeTab === 'notifications' ? 'block' : 'hidden'}`}>
-
-                        <div className="flex items-center gap-2">
-                            <DropdownMenu 
-                                trigger={
-                                    <button
-                                        className="px-4 py-1.5 text-white gap-3 rounded-lg flex justify-center items-center bg-slate-950 border border-slate-700 hover:bg-gray-400/30 cursor-pointer"
-                                    >
-                                        <lucide.LuFilter className="h-4 w-4 mr-2 text-white" />
-                                    </button>
-                                }
-
-
-                                items={[
-                                    { label: 'All notifications', onClick: () => setFilter('all') },
-                                    { label: 'Unread only', onClick: () => setFilter('unread')}
-                                ]}
-                            />
+            {/* Issues List */}
+            <div className="mt-6 min-w-full min-h-fit space-y-4">
+                {loadingIssues ? (
+                    <div className="flex justify-center py-10">
+                        <lucide.LuLoaderCircle className="h-10 w-10 animate-spin text-white" />
+                    </div>
+                ) : (
+                    <>
+                        <div className={`${activeTab === 'assigned' ? 'block' : 'hidden'} space-y-3`}>
+                            {assigned.length > 0 ? (
+                                assigned.map((issue, index) => (
+                                    <IssueCard key={issue.id} issue={issue} index={index} />
+                                ))
+                            ) : (
+                                <p className="text-gray-400 text-center py-8">No assigned issues</p>
+                            )}
                         </div>
-                </div>
+
+                        <div className={`${activeTab === 'created' ? 'block' : 'hidden'} space-y-3`}>
+                            {created.length > 0 ? (
+                                created.map((issue, index) => (
+                                    <IssueCard key={issue.id} issue={issue} index={index} />
+                                ))
+                            ) : (
+                                <p className="text-gray-400 text-center py-8">No created issues</p>
+                            )}
+                        </div>
+                    </>
+                )}
             </div>
         </motion.div>
     )

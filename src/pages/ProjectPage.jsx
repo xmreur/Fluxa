@@ -9,7 +9,7 @@ import { Tabs } from "../components/Tabs";
 import { LabelsTab } from "../components/projects/Labels";
 import { ProjectMembers } from "../components/projects/ProjectMembers";
 import { CreateIssueModal } from "../components/modals/CreateIssueModal";
-import { ProjectIssues } from "../components/projects/Issues";
+import { ProjectIssues } from "../components/projects/ProjectIssues";
 import { EditProjectModal } from "../components/modals/EditProjectModal";
 
 export const ProjectPage = () => {
@@ -258,6 +258,7 @@ export const ProjectPage = () => {
                         userRole={userRole}
                         projectId={projectId}
                         setIssuesAmount={setIssuesAmount}
+                        setShowCreateIssueModal={setShowCreateIssueModal}
                         refresh={refreshIssuesRef}
                     />
                 </div>
