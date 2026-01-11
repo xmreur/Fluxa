@@ -4,11 +4,14 @@ import * as lucide from 'react-icons/lu';
 import { useAuth } from "../context/AuthContext";
 import FluxaLogo from "./FluxaLogo";
 import { supabase } from "../supabase-client";
+import { useState } from "react";
+import { SpotlightSearchModal } from "./modals/SpotlightSearchModal";
+import { Avatar } from "./Avatar";
 
 const navItems = [
     { icon: lucide.LuLayoutDashboard, label: 'Dashboard', path: '/' },
     { icon: lucide.LuInbox, label: 'My Inbox', path: '/inbox' },
-    { icon: lucide.LuFolderCode, label: 'My Issues', path: '/issues'},
+    { icon: lucide.LuFileText, label: 'My Issues', path: '/issues'},
     { icon: lucide.LuFolderKanban, label: 'Projects', path: '/projects' },
     { icon: lucide.LuUsers, label: 'Teams', path: '/teams' },
     { icon: lucide.LuSettings, label: 'Settings', path: '/settings' },
@@ -41,6 +44,8 @@ export function Sidebar() {
     const {user, profile, loading } = useAuth();
     const navigateTo = useNavigate();
 
+    const [spotlightOpen, setSpotlightOpen] = useState(false);
+
     return (
 
         <motion.aside
@@ -55,11 +60,11 @@ export function Sidebar() {
     
             <div className="p-4">
                 <button
-                    onClick={() => {}}
-                    className="w-full bg-cyan-500 hover:bg-cyan-300 justify-center items-center flex py-3 rounded-xl"
+                    onClick={() => setSpotlightOpen(true)}
+                    className="w-full bg-transparent border-slate-700 border hover:bg-slate-700 text-gray-400 hover:text-white cursor-pointer justify-start px-4 items-center flex py-3 rounded-xl"
                 >
-                    <lucide.LuPlus className="h-4 w-4 mr-2" />
-                    New Issue
+                    <lucide.LuSearch className="h-4 w-4 mr-2" />
+                    Search...
                 </button>
             </div>
     
@@ -106,17 +111,7 @@ export function Sidebar() {
                     ) : (
                         <div className="flex items-center gap-3 group">
                             <div className="relative">
-                                {profile?.avatar_url ? (
-                                    <img 
-                                        className="w-10 h-10 rounded-full ring-2 ring-indigo-500/50 shadow-lg object-cover"
-                                        src={profile.avatar_url} 
-                                        alt={profile.username}
-                                    />
-                                ) : (
-                                    <div className="w-10 h-10 rounded-full bg-linear-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold text-sm shadow-lg ring-2 ring-indigo-400/50">
-                                        {profile?.username?.charAt(0).toUpperCase()}
-                                    </div>
-                                )}
+                                <Avatar className="h-10 w-10" profile={profile} />
                             </div>
                             <div className="flex-1 min-w-0">
                                 <div className="flex justify-between items-center">
@@ -143,7 +138,8 @@ export function Sidebar() {
                         </div>
                     )}
                 </div>
-    
+            
+            <SpotlightSearchModal user={user} open={spotlightOpen} onOpenChange={setSpotlightOpen} />
         </motion.aside>
     )
 }

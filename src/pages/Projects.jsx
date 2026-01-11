@@ -15,8 +15,6 @@ export const Projects = () => {
     const { user, profile, loading } = useAuth();
     const [dataLoading, setDataLoading] = useState(true);
 
-    const [showCreateModal, setShowCreateModal] = useState(false);
-
     const [showInviteModalTeam, setShowCreateProjectModalTeam] = useState(null);
 
     function capitalizeFirstLetter(string) {
@@ -98,6 +96,7 @@ export const Projects = () => {
                     created_by: profileMap[project.created_by] || null,
                     issues: issuesByProject[project.id] || []
                 });
+                
             });
 
             // 6️⃣ Fetch team members
@@ -252,7 +251,7 @@ export const Projects = () => {
                                     </motion.h2>
                                     <span className="text-xs text-gray-400">{team.description}</span>
                                 </div>
-
+                                {console.log(team.role)}
                                 {team.role !== 'member' && (
                                     <>
                                         <button
@@ -275,22 +274,14 @@ export const Projects = () => {
                                 )}
                             </motion.div>
 
-                            <ProjectsList userRole={team.role} projects={team.projects} capitalizeFirstLetter={capitalizeFirstLetter} />
+                            <ProjectsList showModal={setShowCreateProjectModalTeam} teamId={team.id} userRole={team.role} projects={team.projects} capitalizeFirstLetter={capitalizeFirstLetter} />
                             
                            
                         </div>
                     ))}
                 </div>
             </motion.div>
-            
-            <div>
-                <CreateTeamModal
-                    open={showCreateModal}
-                    onClose={() => setShowCreateModal(false)}
-                    onCreate={updateData}
-                    user={user}
-                />
-            </div>
+
         </>
     );
 };

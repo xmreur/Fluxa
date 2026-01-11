@@ -6,6 +6,9 @@ import { Settings } from './pages/Settings'
 import { Dashboard } from './pages/Dashboard'
 import { Teams } from './pages/Teams'
 import { Projects } from './pages/Projects'
+import { ProjectPage } from './pages/ProjectPage'
+import { Inbox } from './pages/Inbox'
+import { Issues } from './pages/Issues'
 
 function App() {
 
@@ -15,9 +18,17 @@ function App() {
 
             <Route element={<AuthProtectedLayout />}>
                 <Route path='' element={<Dashboard />} />
-                <Route path='/teams' element={<Teams />} />
-                <Route path='/settings' element={<Settings />} />
+
+                <Route path='/inbox' element={<Inbox />} />
+
+                <Route path='/issues' element={<Issues />} />
+
                 <Route path='/projects' element={<Projects />} />
+                <Route path='/projects/:projectId' element={<ProjectPage />} />
+                
+                <Route path='/teams' element={<Teams />} />
+                
+                <Route path='/settings' element={<Settings />} />
 
                 <Route path='*' element={<h1 className='text-6xl text-white'>Page Not Found</h1>} />
             </Route>

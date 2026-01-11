@@ -17,117 +17,83 @@ export const Teams = () => {
 
     const [showInviteModalTeam, setShowInviteModalTeam] = useState(null);
 
+
+
     function capitalizeFirstLetter(string) {
         if (!string) return "";
         return string.charAt(0).toUpperCase() + string.slice(1);
     }
-
 
     const fetchData = async () => {
         if (!user?.id) return [];
 
         try {
             // 0️⃣ Get team IDs for current user
-            const { data: teamMemberships, error: teamMembershipsError } =
-                await supabase
-                    .from("team_members")
-                    .select("team_id")
-                    .eq("user_id", user.id);
+            const { data: teamMemberships, error: teamMembershipsError } = await supabase
+                .from("team_members")
+                .select("team_id")
+                .eq("user_id", user.id);
 
             if (teamMembershipsError) throw teamMembershipsError;
 
             const teamIds = teamMemberships.map(t => t.team_id);
             if (!teamIds.length) return [];
 
-            // 1️⃣ Fetch teams
-            const { data: teamsData, error: teamsError } = await supabase
-                .from("teams")
-                .select("id, name, description")
-                .in("id", teamIds);
+            // 1️⃣ Parallel fetch: teams, members, issues, invites
+            const [
+                { data: teamsData, error: teamsError },
+                { data: membersData, error: membersError },
+                { data: issuesData, error: issuesError },
+                { data: invitesData, error: invitesError }
+            ] = await Promise.all([
+                supabase.from("teams").select("id, name, description").in("id", teamIds),
+                supabase.from("team_members").select("team_id, user_id, role").in("team_id", teamIds),
+                supabase.from("issues").select("created_by, assigned_to"),
+                supabase.from("invites").select("id, team_id, invitee_email, role, created_at").in("team_id", teamIds)
+            ]);
 
             if (teamsError) throw teamsError;
-
-            // 2️⃣ Fetch all team members
-            const { data: membersData, error: membersError } = await supabase
-                .from("team_members")
-                .select("team_id, user_id, role")
-                .in("team_id", teamIds);
-
             if (membersError) throw membersError;
+            if (issuesError) throw issuesError;
+            if (invitesError) throw invitesError;
 
             // Capture CURRENT USER role per team
             const myRoleByTeam = {};
             membersData.forEach(m => {
-                if (m.user_id === user.id) {
-                    myRoleByTeam[m.team_id] = m.role;
-                }
+                if (m.user_id === user.id) myRoleByTeam[m.team_id] = m.role;
             });
 
             const userIds = [...new Set(membersData.map(m => m.user_id))];
 
-            // 3️⃣ Fetch profiles for members
-            const { data: profilesData, error: profilesError } =
-                await supabase
-                    .from("profiles")
-                    .select("id, username, email, avatar_url")
-                    .in("id", userIds);
+            // 2️⃣ Parallel fetch: profiles for members and invited emails
+            const inviteEmails = [...new Set(invitesData.map(invite => invite.invitee_email))];
+
+            const [{ data: profilesData, error: profilesError }, { data: inviteProfilesData, error: inviteProfilesError }] =
+                await Promise.all([
+                    supabase.from("profiles").select("id, username, email, avatar_url").in("id", userIds),
+                    inviteEmails.length > 0
+                        ? supabase.from("profiles").select("id, username, email, avatar_url").in("email", inviteEmails)
+                        : Promise.resolve({ data: [], error: null })
+                ]);
 
             if (profilesError) throw profilesError;
+            if (inviteProfilesError) throw inviteProfilesError;
 
-            const profileMap = Object.fromEntries(
-                profilesData.map(p => [p.id, p])
-            );
-
-            // 4️⃣ Fetch issue counts (single query)
-            const { data: issuesData, error: issuesError } = await supabase
-                .from("issues")
-                .select("created_by, assigned_to");
-
-            if (issuesError) throw issuesError;
+            // 3️⃣ Build helper maps
+            const profileMap = Object.fromEntries(profilesData.map(p => [p.id, p]));
+            const inviteProfileMap = Object.fromEntries(inviteProfilesData.map(p => [p.email, p]));
 
             const issueCountByUser = {};
             issuesData.forEach(issue => {
-                if (issue.created_by) {
-                    issueCountByUser[issue.created_by] =
-                        (issueCountByUser[issue.created_by] || 0) + 1;
-                }
-                if (issue.assigned_to) {
-                    issueCountByUser[issue.assigned_to] =
-                        (issueCountByUser[issue.assigned_to] || 0) + 1;
-                }
+                if (issue.created_by) issueCountByUser[issue.created_by] = (issueCountByUser[issue.created_by] || 0) + 1;
+                if (issue.assigned_to) issueCountByUser[issue.assigned_to] = (issueCountByUser[issue.assigned_to] || 0) + 1;
             });
 
-            // 5️⃣ Fetch invites
-            const { data: invitesData, error: invitesError } = await supabase
-                .from("invites")
-                .select("id, team_id, invitee_email, role, created_at")
-                .in("team_id", teamIds);
-
-            if (invitesError) throw invitesError;
-
-            // 5a Fetch profiles for invited emails (if they exist)
-            const inviteEmails = [...new Set(invitesData.map(invite => invite.invitee_email))];
-            let inviteProfilesData = [];
-            if (inviteEmails.length) {
-                const { data, error } = await supabase
-                    .from("profiles")
-                    .select("id, username, email, avatar_url")
-                    .in("email", inviteEmails);
-
-                if (error) throw error;
-                inviteProfilesData = data;
-            }
-
-            const inviteProfileMap = Object.fromEntries(
-                inviteProfilesData.map(p => [p.email, p])
-            );
-
+            // 4️⃣ Build invites by team
             const invitesByTeam = {};
             invitesData.forEach(invite => {
                 if (!invitesByTeam[invite.team_id]) invitesByTeam[invite.team_id] = [];
-
                 const profile = inviteProfileMap[invite.invitee_email];
-
                 invitesByTeam[invite.team_id].push({
                     invite_id: invite.id,
                     id: profile?.id || null,
@@ -139,7 +105,7 @@ export const Teams = () => {
                 });
             });
 
-            // 6️⃣ Build teams array (WITH current user role, members, invites)
+            // 5️⃣ Build teams with members
             const teams = teamsData.map(team => ({
                 id: team.id,
                 name: team.name,
@@ -149,11 +115,8 @@ export const Teams = () => {
                 invites: invitesByTeam[team.id] || []
             }));
 
-            const teamMap = Object.fromEntries(
-                teams.map(team => [team.id, team])
-            );
+            const teamMap = Object.fromEntries(teams.map(team => [team.id, team]));
 
-            // 7️⃣ Attach members
             membersData.forEach(member => {
                 const profile = profileMap[member.user_id];
                 const team = teamMap[member.team_id];
@@ -170,6 +133,7 @@ export const Teams = () => {
             });
 
             return teams;
+
         } catch (e) {
             console.error("Failed to fetch teams data:", e);
             return [];
@@ -208,6 +172,13 @@ export const Teams = () => {
         await updateData();
     }
 
+    const removeMember = async (member_id, team_id) => {
+        const { error: deleteError } = await supabase.from('team_members').delete().eq('team_id', team_id).eq('user_id', member_id);
+
+        if (deleteError) { console.error(deleteError.message) }
+        await updateData();
+    }
+
 
     if (loading || dataLoading) {
         return (
@@ -238,7 +209,7 @@ export const Teams = () => {
                         </div>
                     </div>
 
-                    <button 
+                    <button
                         onClick={() => setShowCreateModal(true)}
                         className="bg-blue-500 hover:bg-blue-600 text-white rounded-lg px-5 py-2 flex items-center gap-2"
                     >
@@ -250,11 +221,11 @@ export const Teams = () => {
                 {/* Teams */}
                 <div className="space-y-8">
                     {teams.map((team, teamIndex) => (
-                        <div key={team.id} className="flex flex-col gap-3">
+                        <div key={team.id} id={team.id} className="flex flex-col gap-3">
                             <motion.div
                                 initial={{ opacity: 0, x: -20 }}
                                 animate={{ opacity: 1, x: 0 }}
-                                transition={{ delay: teamIndex * 0.1}} 
+                                transition={{ delay: teamIndex * 0.1 }}
 
                                 className="flex justify-between items-center"
                             >
@@ -276,14 +247,14 @@ export const Teams = () => {
                                 {team.role !== 'member' && (
                                     <>
                                         <button
-                                            onClick={() => setShowInviteModalTeam(team.id)} 
+                                            onClick={() => setShowInviteModalTeam(team.id)}
                                             className="bg-blue-500 hover:bg-blue-600 text-white rounded-lg px-5 py-2 flex items-center gap-2"
                                         >
-                                            <lucide.LuPlus className="h-4 w-4" />
+                                            <lucide.LuMailPlus className="h-4 w-4" />
                                             Invite Member
                                         </button>
 
-                                        <InviteToTeamModal 
+                                        <InviteToTeamModal
                                             open={showInviteModalTeam === team.id}
                                             onClose={() => setShowInviteModalTeam(null)}
                                             onCreate={updateData}
@@ -294,19 +265,20 @@ export const Teams = () => {
                                 )}
                             </motion.div>
 
-                            <TeamMemberList userRole={team.role} teamId={team.id} members={team.members} capitalizeFirstLetter={capitalizeFirstLetter} />
-                            
+                            <TeamMemberList userRole={team.role} teamId={team.id} members={team.members} capitalizeFirstLetter={capitalizeFirstLetter} onUpdate={updateData} removeMember={removeMember} />
+
                             {team.invites.length > 0 && (
                                 <TeamInvitesDropdown
                                     invites={team.invites}
                                     revokeInvite={revokeInvite}
+                                    userRole={team.role}
                                 />
                             )}
                         </div>
                     ))}
                 </div>
             </motion.div>
-            
+
             <div>
                 <CreateTeamModal
                     open={showCreateModal}

@@ -1,54 +1,50 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Input from "../Input";
 import { Modal } from "./Modal";
 import { supabase } from "../../supabase-client";
 
-export const CreateProjectModal = ({
+export const EditProjectModal = ({
     open,
     onClose,
     onCreate,
-    user,
-    teamId,
-    teamName
+    projectName,
+    projectDescription,
+    projectId,
+    userRole
 }) => {
     const [loading, setLoading] = useState(false);
-    const [nameValue, setNameValue] = useState('');
-    const [descriptionValue, setDescriptionValue] = useState('')
+    const [nameValue, setNameValue] = useState(projectName || "");
+    const [descriptionValue, setDescriptionValue] = useState(projectDescription || "");
 
-    const createProject = async () => {
+    useEffect(() => {
+        setNameValue(projectName || "");
+        setDescriptionValue(projectDescription || "");
+    }, [projectName, projectDescription]);
+
+
+    const updateProject = async () => {
         if (!nameValue.trim()) return
+        if (userRole === 'member') { }
         try {
             setLoading(true)
 
             const { data: project, error: projectError } = await supabase
                 .from('projects')
-                .insert({
-                    name: nameValue.trim(),
-                    description: descriptionValue.trim(),
-                    team_id: teamId,
-                    created_by: user.id
+                .update({
+                    name: nameValue,
+                    description: descriptionValue
                 })
+                .eq('id', projectId)
                 .select()
                 .single();
 
             if (projectError) throw new Error(projectError.message);
 
-            const { error: memberError } = await supabase
-                .from('project_members')
-                .insert({
-                    project_id: project.id,
-                    user_id: user.id,
-                    role: 'owner'
-                });
 
-            if (memberError) throw new Error(memberError.message);
-            
-            setNameValue('')
-            setDescriptionValue('')
             setLoading(false)
             onClose()
-        } catch(e) {
-            console.error('Failed to create project:', e);
+        } catch (e) {
+            console.error('Failed to edit project:', e);
             setLoading(false);
         } finally {
             await onCreate()
@@ -57,7 +53,7 @@ export const CreateProjectModal = ({
 
     return (
         <Modal open={open} onClose={onClose}>
-            <h2 className="text-lg text-white font-semibold mb-4">Create Project in {teamName}'s Team</h2>
+            <h2 className="text-lg text-white font-semibold mb-4">Edit {projectName}</h2>
 
             <div className="flex flex-col gap-3">
                 <label htmlFor="name" className="text-white">Project name</label>
@@ -91,11 +87,11 @@ export const CreateProjectModal = ({
                 </button>
 
                 <button
-                    onClick={createProject}
+                    onClick={updateProject}
                     disabled={loading || !nameValue.trim()}
                     className="px-4 py-2 rounded-lg bg-blue-500 not-disabled:hover:bg-blue-600 text-white disabled:opacity-50"
                 >
-                    {loading ? "Creating..." : "Create"}
+                    {loading ? "Editing..." : "Edit"}
                 </button>
             </div>
         </Modal>

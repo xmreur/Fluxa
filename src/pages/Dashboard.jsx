@@ -36,7 +36,7 @@ export function Dashboard() {
 
             const { data: userIssues, error: userIssuesError } = await supabase
                 .from('issues')
-                .select('id, is_active')
+                .select('id, is_active,created_at')
                 .or(`assigned_to.eq.${userId},created_by.eq.${userId}`);
             
             if (userIssuesError) throw new Error(userIssuesError.message);
@@ -97,6 +97,7 @@ export function Dashboard() {
                     created_by,
                     assigned_to,
                     updated_at,
+                    created_at,
                     projects (
                         name,
                         team_id

@@ -15,7 +15,7 @@ export const IssueCard = ({ issue, index, onClick }) => {
                 <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-2">
                         <span className="text-xs text-gray-400 font-mono">
-                            FLX-{issue.id.slice(0, 8).toUpperCase()}
+                            FLX-{issue.id.slice(-12).toUpperCase()}
                         </span>
 
                         {issue.priority === 3 //TODO: REPLACE WITH UI 
@@ -44,7 +44,8 @@ export const IssueCard = ({ issue, index, onClick }) => {
                 </div>
 
                 <div className="text-xs text-gray-400 whitespace-nowrap">
-                    {formatDistanceToNow(issue.createdAt, { addSuffix: true })}
+                    {console.log(issue)}
+                    {formatDistanceToNow(issue.created_at, { addSuffix: true })}
                 </div>
             </div>
         </motion.div>

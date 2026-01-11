@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import * as lucide from "react-icons/lu";
 import { Card, CardContent } from "../../components/Card";
 
-const TeamInvitesDropdown = ({ invites, revokeInvite }) => {
+const TeamInvitesDropdown = ({ invites, revokeInvite, userRole }) => {
     const [open, setOpen] = useState(false);
 
     return (
@@ -38,7 +38,7 @@ const TeamInvitesDropdown = ({ invites, revokeInvite }) => {
                                 transition={{ delay: index * 0.05 }}
                             >
                                 <Card className="hover:border-blue-500/50 transition-colors">
-                                    <CardContent className="mt-5 flex items-center justify-between">
+                                    <CardContent className="flex items-center justify-between">
                                         <div className="flex items-center gap-4">
                                             {member.avatar_url ? (
                                                 <img
@@ -94,13 +94,15 @@ const TeamInvitesDropdown = ({ invites, revokeInvite }) => {
                                                 <lucide.LuClock className="h-3.5 w-3.5" />   
                                                 Pending              
                                             </div>
-
-                                            <div
-                                                onClick={async () => { await revokeInvite(member.invite_id) }}
-                                                className="p-2 cursor-pointer rounded text-red-700 hover:bg-red-600 inline-flex hover:text-slate-950 items-center justify-center"
-                                            >
-                                                <lucide.LuX className="h-5 w-5" />
-                                            </div>
+                                            
+                                            {userRole === 'owner' && (
+                                                <div
+                                                    onClick={async () => { await revokeInvite(member.invite_id) }}
+                                                    className="p-2 cursor-pointer rounded text-red-700 hover:bg-red-600 inline-flex hover:text-slate-950 items-center justify-center"
+                                                >
+                                                    <lucide.LuX className="h-5 w-5" />
+                                                </div>
+                                            )}
                                         </div>
                                     </CardContent>
                                 </Card>
