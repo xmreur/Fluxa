@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router"
 import { supabase } from "../supabase-client";
 import { useAuth } from "../context/AuthContext";
@@ -51,6 +51,10 @@ export const ProjectPage = () => {
         return issues.filter((issue) => issue.is_active == false).length
     }
 
+    const refreshIssuesRef = useRef(null)
+
+    const [reloadTabs, setReloadTabs] = useState(false);
+
     const fetchData = async () => {
 
 
@@ -65,6 +69,12 @@ export const ProjectPage = () => {
 
         setLabelAmount(labelsData)
         setMembersAmount(membersData)
+        setReloadTabs(true)
+    }
+
+    const handleIssueCreated = ()=> {
+        refreshIssuesRef.current?.();
+        fetchData();
     }
 
     useEffect(() => {
@@ -103,6 +113,7 @@ export const ProjectPage = () => {
         };
 
         init(); // call the async function
+        setReloadTabs(false)
     }, [projectId, user.id]); // dependencies
 
 
@@ -247,6 +258,7 @@ export const ProjectPage = () => {
                         userRole={userRole}
                         projectId={projectId}
                         setIssuesAmount={setIssuesAmount}
+                        refresh={refreshIssuesRef}
                     />
                 </div>
 
@@ -255,18 +267,22 @@ export const ProjectPage = () => {
                         userRole={userRole}
                         projectId={projectId}
                         setMembersAmount={setMembersAmount}
+                        toUpdate={reloadTabs}
                     />
                 </div>
 
                 <div className={activeTab === 'labels' ? 'block' : 'hidden'}>
-                    <LabelsTab projectId={project.id} setLabelAmount={setLabelAmount} />
+                    <LabelsTab
+                        projectId={project.id}
+                        setLabelAmount={setLabelAmount}
+                    />
                 </div>
             </div>
 
             <CreateIssueModal
                 open={showCreateIssueModal}
                 onClose={() => setShowCreateIssueModal(false)}
-                onCreate={() => { }}
+                onCreate={handleIssueCreated}
                 projectId={project.id}
                 projectName={project.name}
                 user={user}

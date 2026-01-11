@@ -6,7 +6,7 @@ import { Card, CardContent } from "../Card";
 import { DropdownMenu } from "../DropdownMenu";
 import { IoIosMore } from "react-icons/io";
 
-export const ProjectMembers = ({ projectId, setMembersAmount, userRole }) => {
+export const ProjectMembers = ({ projectId, setMembersAmount, userRole, toUpdate }) => {
     const [members, setMembers] = useState([])
     const [memberRoles, setMemberRoles] = useState({})
     const [loading, setLoading] = useState(true)
@@ -49,7 +49,7 @@ export const ProjectMembers = ({ projectId, setMembersAmount, userRole }) => {
         setLoading(false)
     }
 
-    useEffect(() => { loadData() }, [projectId])
+    useEffect(() => { loadData() }, [projectId, toUpdate === true])
 
     // Handle role changes
     const handleRoleChange = async (memberId, newRole) => {

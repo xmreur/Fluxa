@@ -44,7 +44,7 @@ export const ProjectsList = ({ userRole, projects, capitalizeFirstLetter, showMo
                                     </button>
                                 </div>
                                 <CardTitle className="text-lg mt-3">{project.name}</CardTitle>
-                                <p className="text-sm text-gray-400">{project.description}</p>
+                                <p className="text-sm text-gray-400">{project.description.trim() || 'No description available'}</p>
                             </CardHeader>
                             <CardContent>
                                 <div className="flex items-center gap-4 text-sm text-gray-400 mb-3">

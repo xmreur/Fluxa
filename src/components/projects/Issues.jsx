@@ -13,6 +13,7 @@ export const ProjectIssues = ({
     setIssuesAmount,
     userRole,
     showCreateIssueModal,
+    refresh
 }) => {
     const [issues, setIssues] = useState([])
     const [loading, setLoading] = useState(true)
@@ -61,6 +62,10 @@ export const ProjectIssues = ({
         setIssuesAmount(normalizedIssues.length)
         setLoading(false)
     }
+
+    useEffect(() => {
+        if (refresh) refresh.current = loadIssues;
+    }, [refresh, projectId])
 
     useEffect(() => {
         loadIssues()
