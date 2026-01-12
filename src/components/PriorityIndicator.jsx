@@ -16,7 +16,7 @@ export const PriorityIndicator = ({ priority }) => {
         case 3:
             return <lucide.LuMinus className="h-4 w-4 text-amber-400" />
         case 2:
-            return <lucide.LuAArrowDown className="h-4 w-4 text-gray-400" />
+            return <lucide.LuArrowDown className="h-4 w-4 text-gray-400" />
         default:
             return <lucide.LuCircle className="h-4 w-4 text-gray-500" />
     }

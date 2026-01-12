@@ -9,6 +9,7 @@ import { Projects } from './pages/Projects'
 import { ProjectPage } from './pages/ProjectPage'
 import { Inbox } from './pages/Inbox'
 import { Issues } from './pages/Issues'
+import { IssuePage } from './pages/IssuePage'
 
 function App() {
 
@@ -22,6 +23,7 @@ function App() {
                 <Route path='/inbox' element={<Inbox />} />
 
                 <Route path='/issues' element={<Issues />} />
+                <Route path='/issues/:issueId' element={<IssuePage />} />
 
                 <Route path='/projects' element={<Projects />} />
                 <Route path='/projects/:projectId' element={<ProjectPage />} />

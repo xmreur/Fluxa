@@ -3,7 +3,7 @@
 export const Label = ({ label }) => {
     return (
         <span
-            className={`px-2 py-1 rounded text-sm font-medium ${className}`}
+            className={`px-2 py-1 rounded text-sm font-medium`}
             style={{
                 backgroundColor: `${label.color}20`,
                 color: label.color

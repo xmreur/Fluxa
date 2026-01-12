@@ -38,6 +38,9 @@ export const ProjectPage = () => {
     const [showCreateIssueModal, setShowCreateIssueModal] = useState(false);
     const [showEditModal, setShowEditModal] = useState(false)
 
+    const [showInviteModal, setShowInviteModal] = useState(false);
+    const [projectInvites, setProjectInvites] = useState([]);
+
 
     const bugAmount = (issues) => {
         return issues.filter((issue) => issue.type == 'bug').length
@@ -72,7 +75,7 @@ export const ProjectPage = () => {
         setReloadTabs(true)
     }
 
-    const handleIssueCreated = ()=> {
+    const handleIssueCreated = () => {
         refreshIssuesRef.current?.();
         fetchData();
     }
@@ -267,6 +270,7 @@ export const ProjectPage = () => {
                     <ProjectMembers
                         userRole={userRole}
                         projectId={projectId}
+                        projectName={project.name}
                         setMembersAmount={setMembersAmount}
                         toUpdate={reloadTabs}
                     />

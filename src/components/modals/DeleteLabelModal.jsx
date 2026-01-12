@@ -37,6 +37,7 @@ export const DeleteLabelModal = ({
     return (
         <Modal open={open} onClose={onClose}>
             <h2 className="text-lg text-white font-semibold mb-4">Are you sure you want to delete {name} label</h2>
+            <p className="text-gray-400 text-sm">This action cannot be undone. This will permanently delete the label.</p>
 
 
             <div className="flex justify-end gap-3 mt-6">

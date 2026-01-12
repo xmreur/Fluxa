@@ -90,7 +90,7 @@ export function Dashboard() {
                             color
                         )
                     ),
-                    assignee:profiles (
+                    assignee:profiles!issues_assigned_to_fkey1 (
                         id,
                         username,
                         avatar_url

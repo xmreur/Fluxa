@@ -92,7 +92,7 @@ export const Select = ({
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -10 }}
           transition={{ duration: 0.15 }}
-          className="fixed z-50 max-h-96 w-(--trigger-width)  bg-slate-800/95 backdrop-blur border border-slate-700/50 rounded-xl shadow-2xl shadow-black/30 overflow-auto py-1.5"
+          className="fixed z-50 max-h-96  w-[max(var(--trigger-width),)fit-content]  bg-slate-800/95 backdrop-blur border border-slate-700/50 rounded-xl shadow-2xl shadow-black/30 overflow-auto py-1.5"
           style={{
             left: `${position.x}px`,
             top: `${position.y}px`,

@@ -66,16 +66,21 @@ export const IssueCard = ({ issue, index }) => {
                                             <span>·</span>
                                             <div className="flex items-center gap-1">
                                                 {issue.labels.slice(0, 2).map(label => (
-                                                    <span
-                                                        key={label.id}
-                                                        className="px-1.5 py-0.5 rounded text-[10px] font-medium"
-                                                        style={{
-                                                            backgroundColor: `${label.color}20`,
-                                                            color: label.color,
-                                                        }}
-                                                    >
-                                                        {label.name}
-                                                    </span>
+                                                    <>
+                                                        {label && (
+
+                                                            <span
+                                                                key={label.id}
+                                                                className="px-1.5 py-0.5 rounded text-[10px] font-medium"
+                                                                style={{
+                                                                    backgroundColor: `${label.color}20`,
+                                                                    color: label.color,
+                                                                }}
+                                                            >
+                                                                {label.name}
+                                                            </span>
+                                                        )}
+                                                    </>
                                                 ))}
                                             </div>
                                         </>
@@ -88,8 +93,8 @@ export const IssueCard = ({ issue, index }) => {
                         <div className="flex items-center gap-3 shrink-0">
                             <PriorityIndicator priority={issue.priority} />
 
-                            {issue.assignee && (
-                                <Avatar profile={issue.assignee} className="w-7 h-7"/>
+                            {issue.creator && (
+                                <Avatar profile={issue.creator} className="w-7 h-7" />
                             )}
                         </div>
                     </div>

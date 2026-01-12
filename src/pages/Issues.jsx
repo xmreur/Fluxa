@@ -38,9 +38,15 @@ export const Issues = () => {
                             color
                         )
                     ),
-                    assignee:profiles (
+                    assignee:profiles!issues_assigned_to_fkey1 (
                         id,
                         username,
+                        avatar_url
+                    ),
+                    creator:profiles!issues_created_by_fkey (
+                        id,
+                        username,
+                        email,
                         avatar_url
                     )
                 `)
@@ -88,7 +94,7 @@ export const Issues = () => {
                 </div>
             </div>
 
-            <Tabs 
+            <Tabs
                 activeTab={activeTab}
                 onTabChange={setActiveTab}
                 tabs={tabs}

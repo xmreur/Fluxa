@@ -13,6 +13,7 @@ export const ProjectIssues = ({
     const [issues, setIssues] = useState([]);
     const [loading, setLoading] = useState(true);
 
+
     const loadIssues = async () => {
         if (!projectId) return;
         setLoading(true);
@@ -28,9 +29,15 @@ export const ProjectIssues = ({
                         color
                     )
                 ),
-                assignee:profiles (
+                assignee:profiles!issues_assigned_to_fkey1 (
                     id,
                     username,
+                    avatar_url
+                ),
+                creator:profiles!issues_created_by_fkey (
+                    id,
+                    username,
+                    email,
                     avatar_url
                 )
             `)
@@ -92,7 +99,9 @@ export const ProjectIssues = ({
 
     return (
         <div className="space-y-3">
+            {console.log(issues)}
             {issues.map((issue, index) => (
+
                 <IssueCard key={issue.id} issue={issue} index={index} />
             ))}
         </div>
